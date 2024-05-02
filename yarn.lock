@@ -3282,6 +3282,11 @@ reusify@^1.0.4:
   resolved "https://registry.yarnpkg.com/reusify/-/reusify-1.0.4.tgz#90da382b1e126efc02146e90845a88db12925d76"
   integrity sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==
 
+rtree@^1.4.2:
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/rtree/-/rtree-1.4.2.tgz#8b8c588c58a1f87fea5da2d497ae3b2c5e4bb32e"
+  integrity sha512-ghyCuNLgwDv4tiMT1bUrIFv/q2OSSBm4Ohjsz0NW0vFw9OF6wixMELK6empeOlAcv+mQ34W/aDgJk7aLGLeU5g==
+
 run-parallel@^1.1.9:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/run-parallel/-/run-parallel-1.2.0.tgz#66d1368da7bdf921eb9d95bd1a9229e7f21a43ee"
@@ -3414,6 +3419,11 @@ source-map@^0.6.0, source-map@~0.6.0:
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/source-map/-/source-map-0.6.1.tgz#74722af32e9614e9c287a8d0bbde48b5e2f1a263"
   integrity sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==
+
+spectral.js@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/spectral.js/-/spectral.js-2.0.2.tgz#afa4686226afc7e69ac4ac764cf0fe0569f4c5a3"
+  integrity sha512-g7NA/GMc2C50ez/foALJW8DcwvwbMgW5WF0/1fmAib5AN8NkJwMVyWgkPeSGAm4D6XAFXdtz9KM4AreuV+hJsg==
 
 string-width@^4.1.0, string-width@^4.2.0:
   version "4.2.3"

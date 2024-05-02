@@ -7,7 +7,9 @@
     "dependencies": {
         "domready": "^1.0.8",
         "performance-now": "^2.1.0",
-        "simplex-noise": "^4.0.1"
+        "rtree": "^1.4.2",
+        "simplex-noise": "^4.0.1",
+        "spectral.js": "^2.0.2"
     },
     "devDependencies": {
         "@babel/cli": "^7.21.0",
