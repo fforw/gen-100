@@ -38,70 +38,15 @@ let tmpCtx;
 let tmpCanvas;
 
 
-function setSpectralJsColors(g, colorA, colorB, count, alpha)
+function setSpectralJsColors(g, colorA, colorB, count)
 {
     const pal = spectral.palette(colorA, colorB, count, spectral.HEX)
     const step = 1/(count-1)
     for (let i = 0; i < pal.length; i++)
     {
-        g.addColorStop(i * step, Color.from(pal[i]).toRGBA(alpha))
+        g.addColorStop(i * step, pal[i])
     }
 }
-
-function getColorPair(palette)
-{
-    const indexA = 0|Math.random() * palette.length
-    let indexB
-    do
-    {
-        indexB = 0 | Math.random() * palette.length
-
-    } while ( indexB === indexA)
-
-    return [
-        palette[indexA],
-        palette[indexB]
-    ]
-}
-
-function getColorExcluding(palette, colorA)
-{
-    let colorB
-    do
-    {
-        colorB = palette[0|Math.random() * palette.length]
-    } while ( colorA === colorB )
-
-    return colorB
-}
-
-
-function randomRatio()
-{
-    return Math.random() < 0.5 ? 0.5 : 0.25
-}
-
-// this as vector
-// function randomAlignment(base, d0,d1)
-// {
-//     const c = Math.floor(Math.random() * 3)
-//     switch(c)
-//     {
-//         // begin
-//         case 0:
-//             return base
-//
-//         // center
-//         case 1:
-//             return base + d0/2 - d1/2
-//
-//         // end
-//         case 2:
-//             return base + d0 - d1
-//     }
-// }
-
-
 
 function random(min, max, pow = 1)
 {
@@ -183,6 +128,7 @@ function createNGon(ref, count = random(3, 8), relRadius = 0.2)
     const color = palette[0|Math.random() * palette.length]
     return {
         center: [cx,cy],
+        fill: null,
         radius,
         relRadius,
         points,
@@ -196,27 +142,10 @@ function createNGon(ref, count = random(3, 8), relRadius = 0.2)
 
 function paintNgon(ctx, ng, scale = 1, alpha = 1, stroke = false)
 {
-    let { points, color: fill, center : [cx,cy] } = ng
-
-    if (ng.parentColor && scale === 1)
-    {
-        const [x0,y0] = ng.parent
-        const [x1,y1] = ng.center
-
-        const x2 = x0 + (x1 - x0) * 1.33
-        const y2 = y0 + (y1 - y0) * 1.33
-
-        const g = ctx.createLinearGradient(x0,y0,x2,y2)
-        setSpectralJsColors(g, ng.parentColor, fill, 30, alpha)
-        fill = g
-    }
-    else
-    {
-        fill = Color.from(fill).toRGBA(alpha)
-    }
+    let { points, fill, center : [cx,cy] } = ng
 
     ctx.fillStyle = fill
-
+    ctx.globalAlpha = alpha
     ctx.beginPath()
     const [x, y] = points[points.length - 1]
 
@@ -235,16 +164,47 @@ function paintNgon(ctx, ng, scale = 1, alpha = 1, stroke = false)
     }
     ctx.fill()
     stroke && ctx.stroke()
+    ctx.globalAlpha = 1
 }
 
 
-const ngonCounts = weightedRandom([
-        //1, () => 3,
-        1, () => 4,
-        4, () => 5,
-        6, () => 6,
-        1, () => 8,
-    ]
+function chooseNgnonCounts(counts)
+{
+    let out
+
+    do
+    {
+        out = []
+
+        for (let i = 0; i < counts.length; i += 2)
+        {
+            if (Math.random() < 0.5)
+            {
+                const count = counts[i]
+                const fn = counts[i + 1]
+                out.push(count,fn)
+            }
+        }
+
+        // we need at least one point count
+    } while (out.length === 0)
+
+    console.log("COUNTS", out.filter(fn => typeof fn === "function").map(fn => fn()))
+
+    return out
+}
+
+
+const ngonCounts = weightedRandom(
+    chooseNgnonCounts(
+        [
+            1, () => 3,
+            1, () => 4,
+            4, () => 5,
+            6, () => 6,
+            1, () => 8,
+        ]
+    )
 )
 
 const big = 0.12
@@ -253,10 +213,62 @@ const small = 0.02
 
 const scale = 1.25
 
+const Execution = {
+    PRE: "PRE",
+    PER_NGON: "PER_NGON",
+    PRE_BLOOM: "PRE_BLOOM",
+    POST: "POST",
+}
+
+
+const decorations = [
+    {
+        // blow-up in background
+        execution: Execution.PRE,
+        fn: ngons => {
+
+            const large = ngons.filter(n => n.relRadius === big)
+
+            const pre = large[0|Math.random() * large.length]
+            paintNgon(ctx, pre, 4, 0.05)
+            paintNgon(ctx, pre, 3, 0.1)
+            paintNgon(ctx, pre, 2, 0.3)
+        }
+    },
+    {
+        // stroke or sparkles
+        execution: Execution.POST,
+        fn: ngons => {
+
+            ctx.strokeStyle = "#fff"
+            ctx.lineWidth = 4
+
+            const sparkles = []
+            ngons.filter(n => n.relRadius === big).forEach(n => {
+
+                if (Math.random() < 0.5)
+                {
+                    if (Math.random() < 0.9)
+                    {
+                        sparkles.push(n)
+                    }
+                    return
+                }
+                else
+                {
+                    strokeNgon(n)
+                }
+            })
+
+            sparkles.forEach(n => sparkle(ctx, n))
+        }
+    },
+]
+
 const ngonSizes = weightedRandom([
-        1, () => big * scale,
-        4, () => medium * scale,
-        1, () => small * scale,
+        1, scale => big * scale,
+        4, scale => medium * scale,
+        1, scale => small * scale,
     ]
 )
 
@@ -275,21 +287,33 @@ function createBackgroundGradient()
     const { width, height, palette } = config
 
     const g = ctx.createLinearGradient(0,0,0,height * 8)
-    setSpectralJsColors(g, "#000", palette[0|Math.random() * palette.length] , 256, 1)
+    setSpectralJsColors(g, "#000", palette[0|Math.random() * palette.length] , 256)
     return g
 }
 
 
-function strokeNgon(n)
+function strokeNgon(n, offset = 0)
 {
-    const {points} = n
+
+    let { points, center : [cx,cy] } = n
+
     ctx.beginPath()
     const [x, y] = points[points.length - 1]
-    ctx.moveTo(x, y)
+    const d = distance2(cx,cy,x,y)
+    const f = (d + offset)/d
+    const x2 = cx + (x - cx) * f
+    const y2 = cy + (y - cy) * f
+    ctx.moveTo(x2|0, y2|0)
     for (let i = 0; i < points.length; i++)
     {
         const [x, y] = points[i]
-        ctx.lineTo(x, y)
+
+        const d = distance2(cx,cy,x,y)
+        const f = (d + offset)/d
+        const x2 = cx + (x - cx) * f
+        const y2 = cy + (y - cy) * f
+        
+        ctx.lineTo(x2|0, y2|0)
     }
     ctx.stroke()
 }
@@ -340,6 +364,63 @@ function sparkle(ctx,n)
     }
 }
 
+function shuffle(a) {
+    let j, x, i;
+    for (i = a.length - 1; i > 0; i--) {
+        j = Math.floor(Math.random() * (i + 1));
+        x = a[i];
+        a[i] = a[j];
+        a[j] = x;
+    }
+    return a;
+}
+
+
+
+function chooseDecorations()
+{
+    const out = []
+
+    const decos = decorations.slice()
+    shuffle(decos)
+    const num = Math.floor(Math.random() * 3)
+    const active = decos.slice(0, num)
+
+    console.log("DECOS", active)
+
+    return active
+}
+
+
+function createBackgrounds(ngons)
+{
+    ngons.forEach(
+        ng => {
+
+            const { color, parentColor } = ng
+
+            if (parentColor)
+            {
+                const [x0,y0] = ng.parent
+                const [x1,y1] = ng.center
+
+                const x2 = x0 + (x1 - x0) * 1.33
+                const y2 = y0 + (y1 - y0) * 1.33
+
+                const g = ctx.createLinearGradient(x0,y0,x2,y2)
+                setSpectralJsColors(g, ng.parentColor, color, 30)
+                ng.fill = g
+            }
+            else
+            {
+                ng.fill = color
+            }
+        }
+    )
+}
+
+let ngonAlpha = 1
+
 
 domready(
     () => {
@@ -369,6 +450,7 @@ domready(
             const palette = randomPalette()
             config.palette = palette
 
+            const decos = chooseDecorations()
             ctx.fillStyle = createBackgroundGradient()
             ctx.fillRect(0, 0, width, height)
 
@@ -402,7 +484,9 @@ domready(
             {
                 const parent = Math.random() < 0.5 ? prev : ngons[0 | Math.random() * ngons.length]
 
-                const ngon = createNGon(parent, ngonCounts(), ngonSizes())
+                let scale = 0.5 + Math.random() * 1.5
+
+                const ngon = createNGon(parent, ngonCounts(), ngonSizes(scale))
                 if (check(ngon, parent))
                 {
                     ngons.push(ngon)
@@ -411,25 +495,29 @@ domready(
                 }
                 else
                 {
+                    // keep number of ngons stable
                     i--
                 }
-
             }
 
-            const large = ngons.filter(n => n.relRadius === big)
+            //console.log("NGONS", ngons)
 
-            const pre = large[0|Math.random() * large.length]
-            paintNgon(ctx, pre, 4, 0.05)
-            paintNgon(ctx, pre, 3, 0.1)
-            paintNgon(ctx, pre, 2, 0.3)
+            createBackgrounds(ngons)
+
+            decos.forEach(d => {
+                if (d.execution === Execution.PRE)
+                {
+                    d.fn(ngons)
+                }
+            })
 
             ctx.strokeStyle = "#000"
             ctx.lineWidth = 1
             let repaint = []
 
-            ngons.forEach(ng => {
-                if (ng.relRadius > small)
-                {
+            const ngonDecos = decos.filter(d => d.execution === Execution.PER_NGON)
+
+            ngons.forEach((ng,idx) => {
                     if (Math.random() < 0.5)
                     {
                         paintNgon(tmpCtx, ng, 1, 1, false)
@@ -442,28 +530,18 @@ domready(
                     }
                     else
                     {
-                        paintNgon(ctx, ng, 1, 1, false)
+                        paintNgon(ctx, ng, 1, ngonAlpha, false)
                     }
-                }
+
+                    ngonDecos.forEach(d => {
+                        d.fn(ng,idx)
+                    })
             })
 
-
-            ctx.strokeStyle = "#fff"
-            ctx.lineWidth = 4
-            const sparkles = []
-            ngons.filter(n => n.relRadius === big).forEach(n => {
-
-                if (Math.random() < 0.5)
+            decos.forEach(d => {
+                if (d.execution === Execution.PRE_BLOOM)
                 {
-                    if (Math.random() < 0.9)
-                    {
-                        sparkles.push(n)
-                    }
-                    return
-                }
-                else
-                {
-                    strokeNgon(n)
+                    d.fn(ngons)
                 }
             })
 
@@ -471,10 +549,15 @@ domready(
             distort()
             ctx.drawImage(tmpCanvas,0 ,0)
 
+
             repaint.forEach(n => paintNgon(ctx, n,1,1,false) )
 
-            sparkles.forEach(n => sparkle(ctx, n))
-
+            decos.forEach(d => {
+                if (d.execution === Execution.POST)
+                {
+                    d.fn(ngons)
+                }
+            })
 
         }
 
