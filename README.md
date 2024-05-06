@@ -1,3 +1,5 @@
 # gen-101
 
-WIP
+Regular n-gon construction with collision detection/avoidance. 
+
+

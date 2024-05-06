@@ -9,7 +9,8 @@
         "performance-now": "^2.1.0",
         "rtree": "^1.4.2",
         "simplex-noise": "^4.0.1",
-        "spectral.js": "^2.0.2"
+        "spectral.js": "^2.0.2",
+        "stackblur-canvas": "^2.7.0"
     },
     "devDependencies": {
         "@babel/cli": "^7.21.0",
